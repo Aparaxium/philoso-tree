@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Slider from "rc-slider";
 import "rc-slider/assets/index.css";
+
 import { GraphData, NodeObject, LinkObject } from "react-force-graph-2d";
 
 type ENodeObject = NodeObject & {
@@ -31,17 +32,17 @@ export const NetworkGraphRFG = (graphData: GraphData) => {
   const [curvatureState, setCurvatureState] = useState(defaultCurvatureState);
   const [treeState, setTreeState] = useState(graphData);
   const [clickedHighlightNodes, setClickedHighlightNodes] = useState<
-    ENodeObject[] | undefined
-  >([]);
+    Set<ENodeObject>
+  >(new Set());
   const [clickedHighlightLinks, setClickedHighlightLinks] = useState<
-    LinkObject[]
-  >([]);
+    Set<LinkObject>
+  >(new Set());
   const [hoveredHighlightNodes, setHoveredHighlightNodes] = useState<
-    ENodeObject[] | undefined
-  >([]);
+    Set<ENodeObject>
+  >(new Set());
   const [hoveredHighlightLinks, setHoveredHighlightLinks] = useState<
-    LinkObject[]
-  >([]);
+    Set<LinkObject>
+  >(new Set());
   const [hoverNode, setHoverNode] = useState<ENodeObject | undefined>(
     undefined
   );
@@ -78,7 +79,6 @@ export const NetworkGraphRFG = (graphData: GraphData) => {
 
   const getPrunedTree = useCallback(
     (value) => {
-      console.log(data.links[0]);
       data.nodes.map((node) => {
         if (node.val === undefined || node.val < value) {
           node.vis = false;
@@ -123,27 +123,17 @@ export const NetworkGraphRFG = (graphData: GraphData) => {
     connectionMarks[i] = i;
   }
 
-  const updateClickedHighlight = () => {
-    setClickedHighlightNodes(clickedHighlightNodes);
-    setClickedHighlightLinks(clickedHighlightLinks);
-  };
-
-  const updateHoveredHighlight = () => {
-    setHoveredHighlightNodes(hoveredHighlightNodes);
-    setHoveredHighlightLinks(hoveredHighlightLinks);
-  };
-
   //TODO: DON'T MUTATE STATE
   const handleNodeClicked = <T extends ENodeObject>(node: T) => {
-    const n = [];
-    const l: LinkObject[] = [];
+    const n = new Set<ENodeObject>();
+    const l = new Set<LinkObject>();
     if (node) {
-      n.push(node);
+      n.add(node);
       if (node.neighbors) {
-        node.neighbors.forEach((neighbor) => n.push(neighbor));
+        node.neighbors.forEach((neighbor) => n.add(neighbor));
       }
       if (node.links) {
-        node.links.forEach((link) => l.push(link));
+        node.links.forEach((link) => l.add(link));
       }
     }
     setClickedNode(node || undefined);
@@ -152,15 +142,15 @@ export const NetworkGraphRFG = (graphData: GraphData) => {
   };
 
   const handleNodeHover = <T extends ENodeObject>(node: T) => {
-    const n = [];
-    const l: LinkObject[] = [];
+    const n = new Set<ENodeObject>();
+    const l = new Set<LinkObject>();
     if (node) {
-      n.push(node);
+      n.add(node);
       if (node.neighbors) {
-        node.neighbors.forEach((neighbor) => n.push(neighbor));
+        node.neighbors.forEach((neighbor) => n.add(neighbor));
       }
       if (node.links) {
-        node.links.forEach((link) => l.push(link));
+        node.links.forEach((link) => l.add(link));
       }
     }
 
@@ -170,13 +160,13 @@ export const NetworkGraphRFG = (graphData: GraphData) => {
   };
 
   const handleLinkClicked = <T extends LinkObject>(link: T) => {
-    const n: ENodeObject[] = [];
-    const l: LinkObject[] = [];
+    const n = new Set<ENodeObject>();
+    const l = new Set<LinkObject>();
 
     if (link) {
-      l.push(link);
-      n.push(link.source as ENodeObject);
-      n.push(link.target as ENodeObject);
+      l.add(link);
+      n.add(link.source as ENodeObject);
+      n.add(link.target as ENodeObject);
     }
 
     setClickedHighlightNodes(n);
@@ -184,13 +174,13 @@ export const NetworkGraphRFG = (graphData: GraphData) => {
   };
 
   const handleLinkHovered = <T extends LinkObject>(link: T) => {
-    const n: ENodeObject[] = [];
-    const l: LinkObject[] = [];
+    const n = new Set<ENodeObject>();
+    const l = new Set<LinkObject>();
 
     if (link) {
-      l.push(link);
-      n.push(link.source as ENodeObject);
-      n.push(link.target as ENodeObject);
+      l.add(link);
+      n.add(link.source as ENodeObject);
+      n.add(link.target as ENodeObject);
     }
 
     setHoveredHighlightNodes(n);
@@ -277,30 +267,31 @@ export const NetworkGraphRFG = (graphData: GraphData) => {
           }}
           autoPauseRedraw={false}
           linkWidth={(link) =>
-            clickedHighlightLinks.includes(link) ||
-            hoveredHighlightLinks.includes(link)
+            clickedHighlightLinks.has(link) || hoveredHighlightLinks.has(link)
               ? 5
               : 1
           }
           linkDirectionalParticles={4}
           linkDirectionalParticleWidth={(link) =>
-            clickedHighlightLinks.includes(link) ||
-            hoveredHighlightLinks.includes(link)
+            clickedHighlightLinks.has(link) || hoveredHighlightLinks.has(link)
               ? 4
               : 0
           }
           nodeCanvasObjectMode={() => "before"}
           nodeCanvasObject={(node, ctx) => {
             if (
-              (clickedHighlightNodes && clickedHighlightNodes.includes(node)) ||
-              (hoveredHighlightNodes && hoveredHighlightNodes.includes(node))
+              clickedHighlightNodes.has(node) ||
+              hoveredHighlightNodes.has(node)
             ) {
               paintRing(node, ctx);
             }
           }}
-          onNodeHover={(node) => handleNodeHover(node as ENodeObject)}
+          /* @ts-ignore */
+          onNodeHover={handleNodeHover}
+          /* @ts-ignore */
           onNodeClick={handleNodeClicked}
-          onLinkHover={(link) => handleLinkHovered(link as LinkObject)}
+          /* @ts-ignore */
+          onLinkHover={handleLinkHovered}
           onLinkClick={handleLinkClicked}
         />
       </div>
@@ -309,16 +300,23 @@ export const NetworkGraphRFG = (graphData: GraphData) => {
         <div className="w-2/12 overflow-auto h-screen z-10 border-2 border-black bg-gray-900">
           <div className="p-4 ">
             <label>Parent:</label>
-            {clickedHighlightNodes &&
-              clickedHighlightNodes.slice(0, 1).map((node) => {
+            {Array.from(clickedHighlightNodes)
+              .slice(0, 1)
+              .map((node) => {
                 return <div key={node.id}>{node.id}</div>;
               })}
           </div>
           <div className="p-4">
             <label>Children:</label>
-            {clickedHighlightNodes &&
-              clickedHighlightNodes.slice(1).map((node) => {
-                return <div key={node.id}>{node.id}</div>;
+            {Array.from(clickedHighlightNodes)
+              .slice(1)
+              .sort((a, b) => b.val - a.val)
+              .map((node) => {
+                return (
+                  <div key={node.id}>
+                    {node.id} {node.val}
+                  </div>
+                );
               })}
           </div>
         </div>
