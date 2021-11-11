@@ -27,7 +27,7 @@ interface EGraphData {
 export const NetworkGraphRFG = (graphData: GraphData) => {
   const defaultPruneValue = 15;
   const defaultCurvatureState = 1;
-  const defaultMaxVisibleVal = 150;
+  const defaultMaxVisibleVal = 130;
 
   const [curvatureState, setCurvatureState] = useState(defaultCurvatureState);
   const [treeState, setTreeState] = useState(graphData);
@@ -119,7 +119,7 @@ export const NetworkGraphRFG = (graphData: GraphData) => {
   }, [getPrunedTree]);
 
   const connectionMarks: number[] = [];
-  for (let i = 0; i < defaultMaxVisibleVal; i += 10) {
+  for (let i = 0; i <= defaultMaxVisibleVal; i += 10) {
     connectionMarks[i] = i;
   }
 
@@ -310,7 +310,7 @@ export const NetworkGraphRFG = (graphData: GraphData) => {
             <label>Children:</label>
             {Array.from(clickedHighlightNodes)
               .slice(1)
-              .sort((a, b) => b.val - a.val)
+              .sort((a, b) => (b.val && a.val ? b.val - a.val : 0))
               .map((node) => {
                 return (
                   <div key={node.id}>
